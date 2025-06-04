@@ -1,0 +1,96 @@
+%@hugop%
+%% Partie C – filtrage d’un signal
+clear; close all; clc;
+
+%@hugop%
+%% Partie C.1 sans toolbox
+clear; close all; clc;
+
+Fe = 512;
+t = 0:1/Fe:1;
+f1 = 5; f2 = 20; f3 = 35;
+
+x = sin(2*pi*f1*t) + sin(2*pi*f2*t) + sin(2*pi*f3*t);
+
+% Affichage temporel
+subplot(2,1,1); plot(t, x);
+title("Signal x(t) = sin(2π5t) + sin(2π20t) + sin(2π35t)"); xlabel("Temps (s)");
+
+% Transformée de Fourier
+N = length(x);
+X = fftshift(fft(x));
+f = linspace(-Fe/2, Fe/2, N);
+
+subplot(2,1,2); plot(f, abs(X));
+title("Spectre de x(t)"); xlabel("Fréquence (Hz)");
+X_filtre = X;
+X_filtre(abs(f - 20) < tol | abs(f + 20) < tol) = 0;
+x_filtre = real(ifft(ifftshift(X_filtre)));
+
+
+figure;
+subplot(2,1,1); plot(t, x_filtre);
+title("x(t) filtré (f2 = 20Hz supprimée manuellement dans le spectre)");
+xlabel("Temps (s)");
+
+subplot(2,1,2); plot(f, abs(X_filtre));
+title("Spectre de x(t) filtré");
+xlabel("Fréquence (Hz)");
+
+
+%% 2) on veut filtrer f2 = 20Hz -> on va utiliser un notch filter
+
+% design d’un filtre coupe-bande (notch)
+ordre = 4;
+f2_norm = f2 / (Fe/2);             % freq normalisée
+bande = 0.05;                      % largeur de bande normalisée
+
+% création du filtre avec butter
+[b, a] = butter(ordre, [f2_norm-bande, f2_norm+bande], 'stop');
+
+% analyse du filtre (optionnel)
+figure;
+freqz(b, a, 1024, Fe);
+title("Réponse en fréquence du filtre coupe-bande (notch)");
+
+% filtrage du signal
+x_filtre = filter(b, a, x);
+
+%% 3) on trace le spectre du signal filtré
+Xf = fftshift(fft(x_filtre));
+
+figure;
+subplot(2,1,1);
+plot(t, x_filtre);
+title("x(t) filtré (f2 = 20 Hz supprimé)");
+xlabel("temps (s)"); ylabel("amplitude");
+
+subplot(2,1,2);
+plot(f, abs(Xf));
+title("|FFT| du signal filtré");
+xlabel("fréquence (Hz)"); ylabel("amplitude");
+
+%% C.2 - nettoyage des signaux bonjour & mozart bruite
+path = "C:\Users\hugop\OneDrive (1)\Cours esilv\A3\semestre 2\traitement\projet\sons\";
+
+[bonjour_bruite, fs1] = audioread(path + "bonjour-bruit.wav");
+[Mozart_bruite, fs2] = audioread(path + "Mozart_Bruit.wav");
+
+% filtre passe-bas 
+fc = 4000;                          
+ordre = 6;
+[b, a] = butter(ordre, fc/(fs1/2), 'low');  
+bonjour_filtre = filter(b, a, bonjour_bruite);
+Mozart_filtre = filter(b, a, Mozart_bruite);
+sound(bonjour_filtre, fs1); pause(length(bonjour_filtre)/fs1 + 1);
+sound(Mozart_filtre, fs2);
+audiowrite(path + "bonjour_filtré.wav", bonjour_filtre, fs1);
+audiowrite(path + "Mozart_filtré.wav", Mozart_filtre, fs2);
+t1 = (0:length(bonjour_bruite)-1)/fs1; % -> affichage temporel cf chat
+t2 = (0:length(Mozart_bruite)-1)/fs2;
+
+figure;
+subplot(2,2,1); plot(t1, bonjour_bruite); title("Bonjour bruité");
+subplot(2,2,2); plot(t1, bonjour_filtre); title("Bonjour filtré");
+subplot(2,2,3); plot(t2, Mozart_bruite); title("Mozart bruité");
+subplot(2,2,4); plot(t2, Mozart_filtre); title("Mozart filtré");
