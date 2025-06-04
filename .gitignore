@@ -1,0 +1,8 @@
+# Fichiers MATLAB à ignorer
+*.asv
+*.fig
+*.mdl.*
+*.slx.*
+*.mex*
+.DS_Store
+Thumbs.db
